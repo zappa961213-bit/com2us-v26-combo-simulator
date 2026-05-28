@@ -347,100 +347,101 @@ export default function App() {
           {stage === 'picked' && '선택 결과 공개'}
         </p>
 
-        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-7xl min-h-96">
-          {cards.map((card) => {
-            const isVisible = cardFaceVisible(card.id);
-            const isPicked = pickedCardId === card.id;
+<section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 lg:gap-6 max-w-7xl min-h-96">
+  {cards.map((card) => {
+    const isVisible = cardFaceVisible(card.id);
+    const isPicked = pickedCardId === card.id;
 
-            return (
-              <button
-                key={card.id}
-                onClick={() => pickCard(card.id)}
-                disabled={stage !== 'shuffled'}
-                className={`relative w-32 h-48 sm:w-40 sm:h-60 lg:w-52 lg:h-80
-  rounded-3xl transition-all duration-500 [perspective:1000px]
-  ${stage === 'shuffled' ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}
-  ${
-    stage === 'picked'
-      ? isPicked
-        ? 'scale-125 z-20'
-        : 'scale-90 opacity-40 blur-[1px]'
-      : ''
-  }
-  ${stage === 'shuffling' ? 'shuffle-card' : ''}
-`}
+    return (
+      <button
+        key={card.id}
+        onClick={() => pickCard(card.id)}
+        disabled={stage !== 'shuffled'}
+        className={`relative w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 lg:w-52 lg:h-80
+          rounded-2xl sm:rounded-3xl transition-all duration-500 [perspective:1000px]
+          ${stage === 'shuffled' ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}
+          ${
+            stage === 'picked'
+              ? isPicked
+                ? 'scale-125 z-20'
+                : 'scale-90 opacity-40 blur-[1px]'
+              : ''
+          }
+          ${stage === 'shuffling' ? 'shuffle-card' : ''}
+        `}
+        style={{ order: card.orderKey }}
+      >
+        <div
+          className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
+            isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
+          }`}
+        >
+          <div
+            className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] ${
+              card.type === 'combo'
+                ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
+                : 'border-pink-300 shadow-[0_0_22px_rgba(255,105,180,0.55)]'
+            }`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-pink-200 via-pink-400 to-pink-100" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.55),transparent_55%)]" />
+            <div className="absolute inset-x-0 bottom-0 h-16 sm:h-20 lg:h-24 bg-white/40" />
 
-                style={{ order: card.orderKey }}
-              >
-                <div
-                  className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
-                    isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
-                  }`}
-                >
-                  <div
-                    className={`absolute inset-0 rounded-3xl overflow-hidden border-4 [backface-visibility:hidden] ${
-                      card.type === 'combo'
-                        ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
-                        : 'border-pink-300 shadow-[0_0_22px_rgba(255,105,180,0.55)]'
-                    }`}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-b from-pink-200 via-pink-400 to-pink-100" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.55),transparent_55%)]" />
-                    <div className="absolute inset-x-0 bottom-0 h-24 bg-white/40" />
+            {card.type === 'combo' && (
+              <div className="absolute inset-0 animate-pulse bg-orange-400/10" />
+            )}
 
-                    {card.type === 'combo' && (
-                      <div className="absolute inset-0 animate-pulse bg-orange-400/10" />
-                    )}
-
-                    <div className="relative z-10 flex h-full flex-col p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="text-4xl font-black text-pink-700 leading-none">
-                          {card.position}
-                        </div>
-                        <div className="h-12 w-12 rounded-full bg-white/95 flex items-center justify-center shadow-lg p-1 overflow-hidden">
-                          <img
-                            src={`/logos/${getLogoTeam(card.team)}.png`}
-                            alt={card.team}
-                            className="h-full w-full object-contain"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex-1 flex items-center justify-center">
-                        <div className="text-5xl font-black text-white/30 italic select-none">
-                          Signature
-                        </div>
-                      </div>
-
-                      <div className="text-center pb-1">
-                        {card.type === 'combo' && (
-                          <div className="text-orange-600 font-black text-sm tracking-widest mb-1">
-                            조합전용
-                          </div>
-                        )}
-                        <div className="text-3xl font-black text-zinc-950 tracking-tight">
-                          {card.player}
-                        </div>
-                        <div className="text-xl font-black text-zinc-700">'{card.year}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="absolute inset-0 rounded-3xl overflow-hidden border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                    <div className="absolute inset-3 rounded-2xl border border-white/30" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
-                    <div className="relative z-10 h-full flex items-center justify-center">
-                      <div className="text-4xl font-black text-white/90 italic tracking-wider">
-                        SIGN
-                      </div>
-                    </div>
-                  </div>
+            <div className="relative z-10 flex h-full flex-col p-2 sm:p-3 lg:p-4">
+              <div className="flex items-start justify-between">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-pink-700 leading-none">
+                  {card.position}
                 </div>
-              </button>
-            );
-          })}
-        </section>
-      </main>
-    </div>
-  );
-}
+
+                <div className="h-8 w-8 sm:h-10 sm:w-10 lg:h-12 lg:w-12 rounded-full bg-white/95 flex items-center justify-center shadow-lg p-1 overflow-hidden">
+                  <img
+                    src={`/logos/${getLogoTeam(card.team)}.png`}
+                    alt={card.team}
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-2xl sm:text-3xl lg:text-5xl font-black text-white/30 italic select-none">
+                  Signature
+                </div>
+              </div>
+
+              <div className="text-center pb-1">
+                {card.type === 'combo' && (
+                  <div className="text-orange-600 font-black text-[10px] sm:text-xs lg:text-sm tracking-widest mb-1">
+                    조합전용
+                  </div>
+                )}
+
+                <div className="text-lg sm:text-2xl lg:text-3xl font-black text-zinc-950 tracking-tight">
+                  {card.player}
+                </div>
+
+                <div className="text-sm sm:text-lg lg:text-xl font-black text-zinc-700">
+                  '{card.year}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+            <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
+            <div className="relative z-10 h-full flex items-center justify-center">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/90 italic tracking-wider">
+                SIGN
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
+    );
+  })}
+</section>
+
