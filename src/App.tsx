@@ -357,9 +357,19 @@ export default function App() {
                 key={card.id}
                 onClick={() => pickCard(card.id)}
                 disabled={stage !== 'shuffled'}
-                className={`relative w-52 h-80 rounded-3xl transition-all duration-500 [perspective:1000px] ${
-                  stage === 'shuffled' ? 'hover:scale-105 cursor-pointer' : 'cursor-default'
-                } ${isPicked ? 'scale-110 z-10' : ''} ${stage === 'shuffling' ? 'shuffle-card' : ''}`}
+                className={`relative w-32 h-48 sm:w-40 sm:h-60 lg:w-52 lg:h-80
+  rounded-3xl transition-all duration-500 [perspective:1000px]
+  ${stage === 'shuffled' ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}
+  ${
+    stage === 'picked'
+      ? isPicked
+        ? 'scale-125 z-20'
+        : 'scale-90 opacity-40 blur-[1px]'
+      : ''
+  }
+  ${stage === 'shuffling' ? 'shuffle-card' : ''}
+`}
+
                 style={{ order: card.orderKey }}
               >
                 <div
