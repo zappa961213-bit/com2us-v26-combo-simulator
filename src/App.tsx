@@ -27,6 +27,7 @@ type WishSubTab = 'manage' | 'register';
 type TicketType = 'normal' | 'advanced';
 type AutoType = 'normal' | 'special';
 type SpecialTarget = 'specific' | 'wish' | 'comboOnly';
+type InfoTab = 'intro' | 'guide' | 'updates' | 'contact';
 
 interface CardData {
   id: string;
@@ -178,6 +179,7 @@ export default function App() {
   const [signatureNormalPool, setSignatureNormalPool] = useState<CardData[]>([]);
   const [impactComboPool, setImpactComboPool] = useState<CardData[]>([]);
   const [impactNormalPool, setImpactNormalPool] = useState<CardData[]>([]);
+  const [infoTab, setInfoTab] = useState<InfoTab>('intro');
 
   const [mainTab, setMainTab] = useState<MainTab>('simulation');
   const [wishSubTab, setWishSubTab] = useState<WishSubTab>('manage');
@@ -1032,8 +1034,138 @@ export default function App() {
           </section>
         )}
 
+                <section className="w-full max-w-5xl mt-10 rounded-3xl border border-white/10 bg-white/90 text-slate-800 p-6 shadow-xl">
+          <div className="mb-5 flex flex-wrap justify-center gap-4 text-sm font-black text-slate-600">
+            {[
+              ['intro', '소개'],
+              ['guide', '사용 가이드'],
+              ['updates', '업데이트 내역'],
+              ['contact', '문의'],
+            ].map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setInfoTab(tab as InfoTab)}
+                className={`transition-colors ${
+                  infoTab === tab
+                    ? 'text-pink-600 underline underline-offset-4'
+                    : 'hover:text-slate-950'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-      </main>
+          {infoTab === 'intro' && (
+            <div className="space-y-5">
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-3">소개</h2>
+                <p className="leading-7 font-semibold">
+                  이 사이트는 컴프야V26 카드 조합 결과를 가볍게 시뮬레이션해볼 수 있는 비공식 팬메이드 도구입니다.
+                  시그니처, 임팩트 조합과 팀 확정권 조건을 바탕으로 조합 결과를 확인할 수 있습니다.
+                </p>
+              </section>
+
+              <hr className="border-slate-300" />
+
+              <section>
+                <h3 className="text-lg font-black text-slate-900 mb-3">제공하는 기능</h3>
+                <ul className="list-disc pl-5 space-y-2 font-semibold leading-7">
+                  <li>시그니처 / 임팩트 조합 시뮬레이션</li>
+                  <li>팀 일반 확정권, 팀 고급 확정권 조건 선택</li>
+                  <li>위시 카드 등록 및 별 표시</li>
+                  <li>일반 자동조합 및 특별 조합</li>
+                </ul>
+              </section>
+
+              <hr className="border-slate-300" />
+
+              <section>
+                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
+                <p className="leading-7 font-semibold">
+                  이 사이트는 게임사와 공식적으로 연계되어 있지 않은 비공식 팬 제작 도구입니다.
+                  표시되는 시뮬레이션 결과는 참고용이며, 실제 게임 데이터나 업데이트에 따라 달라질 수 있습니다.
+                </p>
+              </section>
+            </div>
+          )}
+
+          {infoTab === 'guide' && (
+            <div className="space-y-5">
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-3">사용 가이드</h2>
+                <ol className="list-decimal pl-5 space-y-2 font-semibold leading-7">
+                  <li>상단에서 시그니처 또는 임팩트 조합을 선택합니다.</li>
+                  <li>팀 일반 확정권 또는 팀 고급 확정권 조건을 선택합니다.</li>
+                  <li>조합 실행 버튼을 눌러 카드 5장을 확인합니다.</li>
+                  <li>셔플 시작 후 뒷면 카드 1장을 선택해 최종 결과를 확인합니다.</li>
+                  <li>위시 탭에서 원하는 카드를 등록하면 조합 결과에 별 표시가 나타납니다.</li>
+                </ol>
+              </section>
+
+              <hr className="border-slate-300" />
+
+              <section>
+                <h3 className="text-lg font-black text-slate-900 mb-3">자동조합 안내</h3>
+                <p className="leading-7 font-semibold">
+                  일반 자동조합은 설정한 횟수만큼 빠르게 조합을 실행하고, 1회당 카드 1장을 획득한 것으로 결과를 표시합니다.
+                  특별 조합은 특정 카드, 위시 카드, 조합 전용카드가 장판에 등장할 때까지 빠르게 시뮬레이션합니다.
+                </p>
+              </section>
+            </div>
+          )}
+
+          {infoTab === 'updates' && (
+            <div className="space-y-5">
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-3">업데이트 내역</h2>
+                <ul className="space-y-3 font-semibold leading-7">
+                  <li>
+                    <span className="font-black text-pink-600">v0.3</span> - 위시 등록/관리 기능 추가, 자동조합 기능 정리
+                  </li>
+                  <li>
+                    <span className="font-black text-pink-600">v0.2</span> - 임팩트 조합 탭 추가, 팀 로고 및 모바일 대응
+                  </li>
+                  <li>
+                    <span className="font-black text-pink-600">v0.1</span> - 시그니처 조합 시뮬레이션 기본 기능 구현
+                  </li>
+                </ul>
+              </section>
+            </div>
+          )}
+
+          {infoTab === 'contact' && (
+            <div className="space-y-5">
+              <section>
+                <h2 className="text-xl font-black text-slate-900 mb-3">문의</h2>
+                <p className="leading-7 font-semibold">
+                  오류 제보, 카드 DB 수정 요청, 기능 건의는 아래 이메일로 보내주세요.
+                </p>
+
+                <a
+                  href="mailto:zappa961213@gmail.com"
+                  className="mt-4 inline-flex rounded-2xl bg-slate-900 px-5 py-3 font-black text-white hover:bg-pink-600 transition-colors"
+                >
+                  zappa961213@gmail.com
+                </a>
+              </section>
+
+              <hr className="border-slate-300" />
+
+              <section>
+                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
+                <p className="leading-7 font-semibold">
+                  본 사이트는 비공식 팬메이드 시뮬레이터이며, 공식 게임사 또는 구단과 직접적인 관련이 없습니다.
+                </p>
+              </section>
+            </div>
+          )}
+
+          <div className="mt-8 text-center text-sm font-bold text-slate-500">
+            개발자 주댕
+          </div>
+        </section>
+              </main>
     </div>
   );
 }
