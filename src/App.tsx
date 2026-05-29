@@ -22,7 +22,7 @@ const autoCounts = [5, 10, 30, 50, 100];
 
 type GameStage = 'ready' | 'open' | 'back' | 'shuffling' | 'shuffled' | 'picked';
 type ComboMode = 'signature' | 'impact';
-type MainTab = 'simulation' | 'wish' | 'history';
+type MainTab = 'simulation' | 'wish';
 type InfoTab = 'intro' | 'guide' | 'updates' | 'contact';
 type WishSubTab = 'manage' | 'register';
 type TicketType = 'normal' | 'advanced';
@@ -47,12 +47,6 @@ interface SimStats {
   advancedTickets: number;
 }
 
-interface HistoryState {
-  cardCounts: Record<string, number>;
-  normalTeamCounts: Record<string, number>;
-  comboOnlyCount: number;
-  wishHitCount: number;
-}
 
 interface AutoResultItem {
   card: CardData;
@@ -143,6 +137,24 @@ function safeJsonParse<T>(value: string | null, fallback: T): T {
   }
 }
 
+function safeStringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function safeSimStats(value: unknown): SimStats {
+  if (!value || typeof value !== 'object') {
+    return { totalCombos: 0, normalTickets: 0, advancedTickets: 0 };
+  }
+
+  const stats = value as Partial<SimStats>;
+
+  return {
+    totalCombos: typeof stats.totalCombos === 'number' ? stats.totalCombos : 0,
+    normalTickets: typeof stats.normalTickets === 'number' ? stats.normalTickets : 0,
+    advancedTickets: typeof stats.advancedTickets === 'number' ? stats.advancedTickets : 0,
+  };
+}
+
 function getTicketType(filter: string): TicketType {
   return ['전체', '드림', '나눔'].includes(filter) ? 'normal' : 'advanced';
 }
@@ -209,13 +221,6 @@ export default function App() {
     advancedTickets: 0,
   });
 
-  const [history, setHistory] = useState<HistoryState>({
-    cardCounts: {},
-    normalTeamCounts: {},
-    comboOnlyCount: 0,
-    wishHitCount: 0,
-  });
-
   const [autoOpen, setAutoOpen] = useState(false);
   const [autoType, setAutoType] = useState<AutoType>('normal');
   const [autoMode, setAutoMode] = useState<ComboMode>('signature');
@@ -227,22 +232,15 @@ export default function App() {
   const [autoResultItems, setAutoResultItems] = useState<AutoResultItem[]>([]);
 
   useEffect(() => {
-    setWishIds(safeJsonParse<string[]>(localStorage.getItem('wishIds'), []));
-    setStats(
-      safeJsonParse<SimStats>(localStorage.getItem('simStats'), {
-        totalCombos: 0,
-        normalTickets: 0,
-        advancedTickets: 0,
-      })
-    );
-    setHistory(
-      safeJsonParse<HistoryState>(localStorage.getItem('history'), {
-        cardCounts: {},
-        normalTeamCounts: {},
-        comboOnlyCount: 0,
-        wishHitCount: 0,
-      })
-    );
+    const savedWishIds = safeJsonParse<unknown>(localStorage.getItem('wishIds'), []);
+    const savedStats = safeJsonParse<unknown>(localStorage.getItem('simStats'), {
+      totalCombos: 0,
+      normalTickets: 0,
+      advancedTickets: 0,
+    });
+
+    setWishIds(safeStringArray(savedWishIds));
+    setStats(safeSimStats(savedStats));
   }, []);
 
   useEffect(() => {
@@ -252,10 +250,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('simStats', JSON.stringify(stats));
   }, [stats]);
-
-  useEffect(() => {
-    localStorage.setItem('history', JSON.stringify(history));
-  }, [history]);
 
   useEffect(() => {
     async function loadExcelDatabase() {
@@ -390,16 +384,6 @@ export default function App() {
       .slice(0, 120);
   }, [allPool, wishSearch, wishModeFilter, wishTypeFilter, wishTeamFilter]);
 
-  const historyCards = useMemo(() => {
-    return Object.entries(history.cardCounts)
-      .map(([id, count]) => {
-        const card = allPool.find((item) => item.id === id);
-        return card ? { card, count } : null;
-      })
-      .filter((item): item is { card: CardData; count: number } => Boolean(item))
-      .sort((a, b) => b.count - a.count);
-  }, [history.cardCounts, allPool]);
-
   function drawFive(mode: ComboMode, filter: string) {
     const normalPool = mode === 'signature' ? signatureNormalPool : impactNormalPool;
     const comboPool = mode === 'signature' ? signatureComboPool : impactComboPool;
@@ -437,41 +421,6 @@ export default function App() {
     }));
   }
 
-  function addHistory(generatedCards: CardData[], filter: string) {
-    const ticketType = getTicketType(filter);
-
-    setHistory((prev) => {
-      const nextCardCounts = { ...prev.cardCounts };
-      const nextNormalTeamCounts = { ...prev.normalTeamCounts };
-
-      generatedCards.forEach((card) => {
-        nextCardCounts[card.id] = (nextCardCounts[card.id] || 0) + 1;
-
-        if (ticketType === 'normal') {
-          const team = normalizeTeam(card.team);
-          nextNormalTeamCounts[team] = (nextNormalTeamCounts[team] || 0) + 1;
-        }
-      });
-
-      return {
-        cardCounts: nextCardCounts,
-        normalTeamCounts: nextNormalTeamCounts,
-        comboOnlyCount: prev.comboOnlyCount + generatedCards.filter((card) => card.type === 'combo').length,
-        wishHitCount: prev.wishHitCount + generatedCards.filter((card) => wishIds.includes(card.id)).length,
-      };
-    });
-  }
-
-  function resetTicketCounts() {
-    if (!window.confirm('확정권 사용 횟수를 초기화하시겠습니까?')) return;
-
-    setStats((prev) => ({
-      ...prev,
-      normalTickets: 0,
-      advancedTickets: 0,
-    }));
-  }
-
   function toggleWish(cardId: string) {
     setWishIds((prev) =>
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
@@ -484,15 +433,15 @@ export default function App() {
     }
   }
 
-  function resetStats() {
-    if (!window.confirm('시뮬레이션 카운터를 초기화하시겠습니까?')) return;
-    setStats({ totalCombos: 0, normalTickets: 0, advancedTickets: 0 });
-  }
+   function resetTicketCounts() {
+  if (!window.confirm('확정권 사용 횟수를 초기화하시겠습니까?')) return;
 
-  function resetHistory() {
-    if (!window.confirm('획득 기록을 초기화하시겠습니까?')) return;
-    setHistory({ cardCounts: {}, normalTeamCounts: {}, comboOnlyCount: 0, wishHitCount: 0 });
-  }
+  setStats((prev) => ({
+    ...prev,
+    normalTickets: 0,
+    advancedTickets: 0,
+  }));
+}
 
   async function simulateCombo() {
     if (!dbLoaded || filteredNormalPool.length === 0) return;
@@ -505,7 +454,6 @@ export default function App() {
 
     setCards(generated);
     addStats(selectedFilter, 1);
-    addHistory(generated, selectedFilter);
     setStage('open');
     setIsRolling(false);
   }
@@ -560,7 +508,6 @@ export default function App() {
       }
 
       addStats(autoFilter, autoCount);
-      addHistory(allGenerated, autoFilter);
       setAutoResult(`${autoMode === 'signature' ? '시그니처' : '임팩트'} 자동조합 ${autoCount}회 완료 / 총 ${allGenerated.length}장 획득`);
       setAutoResultItems(buildResultSummary(allGenerated).slice(0, 60));
       return;
@@ -599,7 +546,6 @@ export default function App() {
     }
 
     if (foundCards.length === 0) {
-      setAutoResult(`최대 ${maxTry.toLocaleString()}회까지 실행했지만 조건 카드가 등장하지 않았습니다. 특별 조합은 기록탭에 반영되지 않습니다.`);
       return;
     }
 
@@ -607,7 +553,6 @@ export default function App() {
     setStage('open');
     setPickedCardId(null);
     setMainTab('simulation');
-    setAutoResult(`${tries.toLocaleString()}회 만에 조건 카드가 장판에 등장했습니다. 특별 조합은 기록탭에 반영되지 않았습니다.`);
     setAutoResultItems(buildResultSummary(foundCards));
   }
 
@@ -703,7 +648,6 @@ export default function App() {
             {[
               ['simulation', '시뮬레이션'],
               ['wish', '위시'],
-              ['history', '기록'],
             ].map(([tab, label]) => (
               <button
                 key={tab}
@@ -888,7 +832,6 @@ export default function App() {
 
                 {autoType === 'special' && (
                   <p className="text-sm text-yellow-300">
-                    특별 조합은 원하는 카드가 장판에 등장할 때까지 빠르게 실행하며, 기록탭에는 반영되지 않습니다.
                   </p>
                 )}
 
@@ -949,12 +892,12 @@ export default function App() {
                     style={{ order: card.orderKey }}
                   >
                     <div
-                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d] ${
+                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d] [will-change:transform] ${
                         isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
                       }`}
                     >
                       <div
-                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] ${
+                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 transition-opacity duration-100 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] ${!isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${
                           card.type === 'combo'
                             ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
                             : isImpact
@@ -1011,7 +954,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div
+                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] transition-opacity duration-100 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] ${isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                      >
                         <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
                         <div className="relative z-10 h-full flex items-center justify-center">
@@ -1119,70 +1064,7 @@ export default function App() {
           </section>
         )}
 
-        {mainTab === 'history' && (
-          <section className="w-full max-w-6xl rounded-3xl border border-white/10 bg-black/40 p-5 backdrop-blur space-y-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-2xl font-black text-cyan-200">기록</h2>
-              <div className="flex gap-2">
-                <button onClick={resetStats} className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-bold">
-                  카운터 초기화
-                </button>
-                <button onClick={resetHistory} className="px-4 py-2 rounded-xl bg-red-500/80 text-white text-sm font-bold">
-                  기록 초기화
-                </button>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
-                <div className="text-sm text-zinc-500">총 획득 카드</div>
-                <div className="text-3xl font-black">{Object.values(history.cardCounts).reduce((a, b) => a + b, 0)}</div>
-              </div>
-              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
-                <div className="text-sm text-zinc-500">조합 전용카드 획득</div>
-                <div className="text-3xl font-black text-orange-300">{history.comboOnlyCount}</div>
-              </div>
-              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
-                <div className="text-sm text-zinc-500">위시카드 획득</div>
-                <div className="text-3xl font-black text-yellow-300">{history.wishHitCount}</div>
-              </div>
-              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
-                <div className="text-sm text-zinc-500">기록된 카드 종류</div>
-                <div className="text-3xl font-black text-cyan-200">{historyCards.length}</div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
-              <h3 className="font-black mb-3 text-pink-300">일반 확정권 사용 시 팀별 획득</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {allTeams.map((team) => (
-                  <div key={team} className="rounded-xl bg-zinc-900 px-3 py-2 text-sm flex justify-between">
-                    <span>{team}</span>
-                    <b>{history.normalTeamCounts[team] || 0}</b>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
-              <h3 className="font-black mb-3 text-cyan-200">카드별 획득 횟수</h3>
-              {historyCards.length === 0 ? (
-                <p className="text-zinc-500">아직 획득 기록이 없습니다.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
-                  {historyCards.map(({ card, count }) =>
-                    renderCardMini(
-                      card,
-                      <div className="shrink-0 rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-black">
-                        × {count}
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
         <section className="w-full max-w-5xl mt-8 rounded-3xl border border-white/10 bg-white/90 text-slate-800 p-5 sm:p-6 shadow-xl">
           <div className="mb-5 flex flex-wrap justify-center gap-4 text-sm font-black text-slate-600">
             {[
