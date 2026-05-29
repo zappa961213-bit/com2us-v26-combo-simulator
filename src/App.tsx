@@ -864,12 +864,23 @@ export default function App() {
                     style={{ order: card.orderKey }}
                   >
                     <div
-                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
-                        isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
-                      }`}
-                    >
+  className={`relative w-full h-full transition-transform duration-700 
+    [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d]
+    ${
+      isVisible
+        ? '[transform:rotateY(0deg)]'
+        : '[transform:rotateY(180deg)]'
+    }
+  `}
+>
+                      
+                  
+                      
                       <div
-                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] ${
+  className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 
+    [backface-visibility:hidden] [-webkit-backface-visibility:hidden]
+    ${!isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+    ${
                           card.type === 'combo'
                             ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
                             : isImpact
@@ -926,7 +937,15 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div
+  className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 
+    bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 
+    shadow-[0_0_30px_rgba(217,70,239,0.7)] 
+    [backface-visibility:hidden] [-webkit-backface-visibility:hidden] 
+    [transform:rotateY(180deg)] 
+    ${isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+  `}
+>
                         <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
                         <div className="relative z-10 h-full flex items-center justify-center">
