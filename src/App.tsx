@@ -655,7 +655,7 @@ export default function App() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#54200f_0%,#120301_42%,#000_100%)]" />
       <div className="absolute left-0 right-0 top-72 h-44 bg-gradient-to-r from-orange-500/20 via-yellow-300/20 to-orange-500/20 blur-3xl" />
 
-      <main className="relative z-10 flex flex-col items-center px-4 py-8 gap-7">
+      <main className="relative z-10 flex flex-col items-center px-4 py-5 md:py-8 gap-4 md:gap-7">
         <section className="w-full max-w-7xl flex flex-col gap-5">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="text-center lg:text-left space-y-2">
@@ -792,24 +792,36 @@ export default function App() {
               </div>
             </section>
 
-            <button
-              onClick={simulateCombo}
-              disabled={isRolling || !dbLoaded}
-              className={`px-10 py-4 rounded-2xl text-xl font-black shadow-[0_0_25px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform disabled:opacity-50 ${
-                comboMode === 'signature'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600'
-                  : 'bg-gradient-to-r from-lime-400 to-green-600 text-black'
-              }`}
-            >
-              {isRolling ? '진행 중...' : comboMode === 'signature' ? '시그 조합 실행' : '임팩트 조합 실행'}
-            </button>
+            <section className="flex flex-col items-center gap-2 w-full max-w-[320px] sm:max-w-md">
+              <button
+                onClick={simulateCombo}
+                disabled={isRolling || !dbLoaded}
+                className={`w-full px-6 py-3 sm:px-10 sm:py-4 rounded-2xl text-lg sm:text-xl font-black shadow-[0_0_25px_rgba(217,70,239,0.6)] hover:scale-105 transition-transform disabled:opacity-50 ${
+                  comboMode === 'signature'
+                    ? 'bg-gradient-to-r from-pink-500 to-purple-600'
+                    : 'bg-gradient-to-r from-lime-400 to-green-600 text-black'
+                }`}
+              >
+                {isRolling ? '진행 중...' : comboMode === 'signature' ? '시그 조합 실행' : '임팩트 조합 실행'}
+              </button>
 
-            <button
-              onClick={() => setAutoOpen((prev) => !prev)}
-              className="px-7 py-3 rounded-2xl bg-zinc-900 border border-cyan-400/60 text-cyan-200 font-black shadow-[0_0_18px_rgba(34,211,238,0.25)] hover:bg-zinc-800"
-            >
-              자동 조합
-            </button>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <button
+                  onClick={() => setAutoOpen((prev) => !prev)}
+                  className="px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-zinc-900 border border-cyan-400/60 text-cyan-200 text-sm sm:text-base font-black shadow-[0_0_18px_rgba(34,211,238,0.25)] hover:bg-zinc-800"
+                >
+                  자동 조합
+                </button>
+
+                <button
+                  onClick={startShuffle}
+                  disabled={stage !== 'open'}
+                  className="px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-sm sm:text-base font-black shadow-[0_0_20px_rgba(255,180,0,0.7)] hover:scale-105 transition-transform disabled:opacity-30 disabled:grayscale"
+                >
+                  셔플 시작
+                </button>
+              </div>
+            </section>
 
             {autoOpen && (
               <section className="w-full max-w-5xl rounded-3xl border border-cyan-400/25 bg-black/45 p-5 backdrop-blur space-y-5">
@@ -900,17 +912,8 @@ export default function App() {
               </section>
             )}
 
-            {stage === 'open' && (
-              <button
-                onClick={startShuffle}
-                className="px-8 py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-black shadow-[0_0_20px_rgba(255,180,0,0.7)] hover:scale-105 transition-transform"
-              >
-                셔플 시작
-              </button>
-            )}
-
-            <p className="h-6 text-sm text-zinc-400">
-              {stage === 'open' && '카드 5장이 공개되었습니다. 위시 카드는 오른쪽 상단에 별이 표시됩니다.'}
+            <p className="min-h-5 text-xs sm:text-sm text-zinc-400 text-center px-2">
+              {stage === 'open' && '카드 5장이 공개되었습니다. 셔플을 시작하세요.'}
               {stage === 'back' && '카드를 뒤집는 중...'}
               {stage === 'shuffling' && '카드를 섞는 중...'}
               {stage === 'shuffled' && '뒷면 카드 1장을 선택하세요'}
@@ -944,12 +947,12 @@ export default function App() {
                     style={{ order: card.orderKey }}
                   >
                     <div
-                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
+                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d] ${
                         isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
                       }`}
                     >
                       <div
-                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] ${
+                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] ${
                           card.type === 'combo'
                             ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
                             : isImpact
@@ -1006,7 +1009,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)]">
                         <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
                         <div className="relative z-10 h-full flex items-center justify-center">
