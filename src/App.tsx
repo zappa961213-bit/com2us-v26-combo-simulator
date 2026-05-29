@@ -331,16 +331,11 @@ export default function App() {
   }, [wishIds, allPool]);
 
   const currentNormalPool = comboMode === 'signature' ? signatureNormalPool : impactNormalPool;
-  const currentComboPool = comboMode === 'signature' ? signatureComboPool : impactComboPool;
-  const comboRate = comboMode === 'signature' ? 0.09 : 0.15;
 
   const filteredNormalPool = useMemo(() => {
     return currentNormalPool.filter((card) => matchesFilter(card, selectedFilter));
   }, [currentNormalPool, selectedFilter]);
 
-  const filteredComboPool = useMemo(() => {
-    return currentComboPool.filter((card) => matchesFilter(card, selectedFilter));
-  }, [currentComboPool, selectedFilter]);
 
   const wishSearchResults = useMemo(() => {
     const keyword = wishSearch.trim().toLowerCase();
@@ -421,10 +416,6 @@ export default function App() {
     }
   }
 
-  function resetStats() {
-    if (!window.confirm('시뮬레이션 카운터를 초기화하시겠습니까?')) return;
-    setStats({ totalCombos: 0, normalTickets: 0, advancedTickets: 0 });
-  }
 
   async function simulateCombo() {
     if (!dbLoaded || filteredNormalPool.length === 0) return;
