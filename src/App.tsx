@@ -433,15 +433,15 @@ export default function App() {
     }
   }
 
-   function resetTicketCounts() {
-  if (!window.confirm('확정권 사용 횟수를 초기화하시겠습니까?')) return;
+  function resetTicketCounts() {
+    if (!window.confirm('확정권 사용 횟수를 초기화하시겠습니까?')) return;
 
-  setStats((prev) => ({
-    ...prev,
-    normalTickets: 0,
-    advancedTickets: 0,
-  }));
-}
+    setStats((prev) => ({
+      ...prev,
+      normalTickets: 0,
+      advancedTickets: 0,
+    }));
+  }
 
   async function simulateCombo() {
     if (!dbLoaded || filteredNormalPool.length === 0) return;
@@ -495,21 +495,36 @@ export default function App() {
     setAutoResultItems([]);
 
     if (autoType === 'normal') {
-      const allGenerated: CardData[] = [];
+      const acquiredCards: CardData[] = [];
+      let boardCount = 0;
 
       for (let i = 0; i < autoCount; i++) {
-        const generated = drawFive(autoMode, autoFilter);
-        allGenerated.push(...generated);
+        const boardCards = drawFive(autoMode, autoFilter);
+
+        if (boardCards.length > 0) {
+          boardCount += boardCards.length;
+
+          // 자동조합 1회 = 장판 5장 등장 후 그중 1장 획득
+          const acquiredCard = boardCards[Math.floor(Math.random() * boardCards.length)];
+          acquiredCards.push(acquiredCard);
+        }
       }
 
-      if (allGenerated.length === 0) {
+      if (acquiredCards.length === 0) {
         setAutoResult('조건에 맞는 카드 풀이 없습니다.');
         return;
       }
 
-      addStats(autoFilter, autoCount);
-      setAutoResult(`${autoMode === 'signature' ? '시그니처' : '임팩트'} 자동조합 ${autoCount}회 완료 / 총 ${allGenerated.length}장 획득`);
-      setAutoResultItems(buildResultSummary(allGenerated).slice(0, 60));
+      const comboOnlyHits = acquiredCards.filter((card) => card.type === 'combo').length;
+      const wishHits = acquiredCards.filter((card) => wishIds.includes(card.id)).length;
+
+      addStats(autoFilter, acquiredCards.length);
+      setAutoResult(
+        `${autoMode === 'signature' ? '시그니처' : '임팩트'} 자동조합 ${acquiredCards.length}회 완료 / ` +
+          `장판 ${boardCount}장 확인 / 최종 ${acquiredCards.length}장 획득` +
+          ` / 조합전용 ${comboOnlyHits}장 / 위시 ${wishHits}장`
+      );
+      setAutoResultItems(buildResultSummary(acquiredCards).slice(0, 60));
       return;
     }
 
@@ -518,21 +533,26 @@ export default function App() {
     let foundCards: CardData[] = [];
     const search = specialSearch.trim().toLowerCase();
 
+    if (specialTarget === 'specific' && !search) {
+      setAutoResult('특정 카드 검색어를 입력해주세요.');
+      return;
+    }
+
     while (tries < maxTry) {
       tries += 1;
-      const generated = drawFive(autoMode, autoFilter);
+      const boardCards = drawFive(autoMode, autoFilter);
 
-      if (generated.length === 0) {
+      if (boardCards.length === 0) {
         setAutoResult('조건에 맞는 카드 풀이 없습니다.');
         return;
       }
 
       const matched =
         specialTarget === 'wish'
-          ? generated.some((card) => wishIds.includes(card.id))
+          ? boardCards.some((card) => wishIds.includes(card.id))
           : specialTarget === 'comboOnly'
-            ? generated.some((card) => card.type === 'combo')
-            : generated.some((card) =>
+            ? boardCards.some((card) => card.type === 'combo')
+            : boardCards.some((card) =>
                 [card.team, normalizeTeam(card.team), card.player, card.year, card.concept, card.position]
                   .join(' ')
                   .toLowerCase()
@@ -540,20 +560,42 @@ export default function App() {
               );
 
       if (matched) {
-        foundCards = generated;
+        foundCards = boardCards;
         break;
       }
     }
 
     if (foundCards.length === 0) {
+      setAutoResult(`최대 ${maxTry.toLocaleString()}회까지 실행했지만 조건 카드가 장판에 등장하지 않았습니다.`);
       return;
     }
+
+    const targetLabel =
+      specialTarget === 'wish'
+        ? '위시카드'
+        : specialTarget === 'comboOnly'
+          ? '조합 전용카드'
+          : `검색어 "${specialSearch.trim()}"`;
+
+    const matchedCards = foundCards.filter((card) => {
+      if (specialTarget === 'wish') return wishIds.includes(card.id);
+      if (specialTarget === 'comboOnly') return card.type === 'combo';
+
+      return [card.team, normalizeTeam(card.team), card.player, card.year, card.concept, card.position]
+        .join(' ')
+        .toLowerCase()
+        .includes(search);
+    });
 
     setCards(foundCards);
     setStage('open');
     setPickedCardId(null);
     setMainTab('simulation');
-    setAutoResultItems(buildResultSummary(foundCards));
+    setAutoResult(
+      `${targetLabel}가 ${tries.toLocaleString()}회 만에 장판에 등장했습니다. ` +
+        `총 ${tries * 5}장의 장판 카드를 확인했습니다.`
+    );
+    setAutoResultItems(buildResultSummary(matchedCards.length > 0 ? matchedCards : foundCards));
   }
 
   function renderWishBadge(isWish: boolean) {
@@ -832,6 +874,7 @@ export default function App() {
 
                 {autoType === 'special' && (
                   <p className="text-sm text-yellow-300">
+                    특별 조합은 조건 카드가 장판에 등장할 때까지 빠르게 시뮬레이션하며, 몇 회 만에 등장했는지 표시합니다.
                   </p>
                 )}
 
