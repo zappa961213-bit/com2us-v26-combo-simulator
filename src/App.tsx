@@ -22,12 +22,11 @@ const autoCounts = [5, 10, 30, 50, 100];
 
 type GameStage = 'ready' | 'open' | 'back' | 'shuffling' | 'shuffled' | 'picked';
 type ComboMode = 'signature' | 'impact';
-type MainTab = 'simulation' | 'wish';
+type MainTab = 'simulation' | 'wish' | 'history';
 type WishSubTab = 'manage' | 'register';
 type TicketType = 'normal' | 'advanced';
 type AutoType = 'normal' | 'special';
 type SpecialTarget = 'specific' | 'wish' | 'comboOnly';
-type InfoTab = 'intro' | 'guide' | 'updates' | 'contact';
 
 interface CardData {
   id: string;
@@ -47,6 +46,12 @@ interface SimStats {
   advancedTickets: number;
 }
 
+interface HistoryState {
+  cardCounts: Record<string, number>;
+  normalTeamCounts: Record<string, number>;
+  comboOnlyCount: number;
+  wishHitCount: number;
+}
 
 interface AutoResultItem {
   card: CardData;
@@ -179,7 +184,6 @@ export default function App() {
   const [signatureNormalPool, setSignatureNormalPool] = useState<CardData[]>([]);
   const [impactComboPool, setImpactComboPool] = useState<CardData[]>([]);
   const [impactNormalPool, setImpactNormalPool] = useState<CardData[]>([]);
-  const [infoTab, setInfoTab] = useState<InfoTab>('intro');
 
   const [mainTab, setMainTab] = useState<MainTab>('simulation');
   const [wishSubTab, setWishSubTab] = useState<WishSubTab>('manage');
@@ -203,6 +207,12 @@ export default function App() {
     advancedTickets: 0,
   });
 
+  const [history, setHistory] = useState<HistoryState>({
+    cardCounts: {},
+    normalTeamCounts: {},
+    comboOnlyCount: 0,
+    wishHitCount: 0,
+  });
 
   const [autoOpen, setAutoOpen] = useState(false);
   const [autoType, setAutoType] = useState<AutoType>('normal');
@@ -223,6 +233,14 @@ export default function App() {
         advancedTickets: 0,
       })
     );
+    setHistory(
+      safeJsonParse<HistoryState>(localStorage.getItem('history'), {
+        cardCounts: {},
+        normalTeamCounts: {},
+        comboOnlyCount: 0,
+        wishHitCount: 0,
+      })
+    );
   }, []);
 
   useEffect(() => {
@@ -233,6 +251,9 @@ export default function App() {
     localStorage.setItem('simStats', JSON.stringify(stats));
   }, [stats]);
 
+  useEffect(() => {
+    localStorage.setItem('history', JSON.stringify(history));
+  }, [history]);
 
   useEffect(() => {
     async function loadExcelDatabase() {
@@ -338,7 +359,6 @@ export default function App() {
     return currentNormalPool.filter((card) => matchesFilter(card, selectedFilter));
   }, [currentNormalPool, selectedFilter]);
 
-
   const wishSearchResults = useMemo(() => {
     const keyword = wishSearch.trim().toLowerCase();
 
@@ -368,6 +388,15 @@ export default function App() {
       .slice(0, 120);
   }, [allPool, wishSearch, wishModeFilter, wishTypeFilter, wishTeamFilter]);
 
+  const historyCards = useMemo(() => {
+    return Object.entries(history.cardCounts)
+      .map(([id, count]) => {
+        const card = allPool.find((item) => item.id === id);
+        return card ? { card, count } : null;
+      })
+      .filter((item): item is { card: CardData; count: number } => Boolean(item))
+      .sort((a, b) => b.count - a.count);
+  }, [history.cardCounts, allPool]);
 
   function drawFive(mode: ComboMode, filter: string) {
     const normalPool = mode === 'signature' ? signatureNormalPool : impactNormalPool;
@@ -406,6 +435,41 @@ export default function App() {
     }));
   }
 
+  function addHistory(generatedCards: CardData[], filter: string) {
+    const ticketType = getTicketType(filter);
+
+    setHistory((prev) => {
+      const nextCardCounts = { ...prev.cardCounts };
+      const nextNormalTeamCounts = { ...prev.normalTeamCounts };
+
+      generatedCards.forEach((card) => {
+        nextCardCounts[card.id] = (nextCardCounts[card.id] || 0) + 1;
+
+        if (ticketType === 'normal') {
+          const team = normalizeTeam(card.team);
+          nextNormalTeamCounts[team] = (nextNormalTeamCounts[team] || 0) + 1;
+        }
+      });
+
+      return {
+        cardCounts: nextCardCounts,
+        normalTeamCounts: nextNormalTeamCounts,
+        comboOnlyCount: prev.comboOnlyCount + generatedCards.filter((card) => card.type === 'combo').length,
+        wishHitCount: prev.wishHitCount + generatedCards.filter((card) => wishIds.includes(card.id)).length,
+      };
+    });
+  }
+
+  function resetTicketCounts() {
+    if (!window.confirm('확정권 사용 횟수를 초기화하시겠습니까?')) return;
+
+    setStats((prev) => ({
+      ...prev,
+      normalTickets: 0,
+      advancedTickets: 0,
+    }));
+  }
+
   function toggleWish(cardId: string) {
     setWishIds((prev) =>
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
@@ -418,6 +482,15 @@ export default function App() {
     }
   }
 
+  function resetStats() {
+    if (!window.confirm('시뮬레이션 카운터를 초기화하시겠습니까?')) return;
+    setStats({ totalCombos: 0, normalTickets: 0, advancedTickets: 0 });
+  }
+
+  function resetHistory() {
+    if (!window.confirm('획득 기록을 초기화하시겠습니까?')) return;
+    setHistory({ cardCounts: {}, normalTeamCounts: {}, comboOnlyCount: 0, wishHitCount: 0 });
+  }
 
   async function simulateCombo() {
     if (!dbLoaded || filteredNormalPool.length === 0) return;
@@ -430,6 +503,7 @@ export default function App() {
 
     setCards(generated);
     addStats(selectedFilter, 1);
+    addHistory(generated, selectedFilter);
     setStage('open');
     setIsRolling(false);
   }
@@ -471,24 +545,22 @@ export default function App() {
     setAutoResultItems([]);
 
     if (autoType === 'normal') {
-      const acquiredCards: CardData[] = [];
+      const allGenerated: CardData[] = [];
 
       for (let i = 0; i < autoCount; i++) {
         const generated = drawFive(autoMode, autoFilter);
-        if (generated.length > 0) {
-          const acquired = generated[Math.floor(Math.random() * generated.length)];
-          acquiredCards.push(acquired);
-        }
+        allGenerated.push(...generated);
       }
 
-      if (acquiredCards.length === 0) {
+      if (allGenerated.length === 0) {
         setAutoResult('조건에 맞는 카드 풀이 없습니다.');
         return;
       }
 
       addStats(autoFilter, autoCount);
-      setAutoResult(`${autoMode === 'signature' ? '시그니처' : '임팩트'} 자동조합 ${autoCount}회 완료 / 총 ${acquiredCards.length}장 획득`);
-      setAutoResultItems(buildResultSummary(acquiredCards).slice(0, 60));
+      addHistory(allGenerated, autoFilter);
+      setAutoResult(`${autoMode === 'signature' ? '시그니처' : '임팩트'} 자동조합 ${autoCount}회 완료 / 총 ${allGenerated.length}장 획득`);
+      setAutoResultItems(buildResultSummary(allGenerated).slice(0, 60));
       return;
     }
 
@@ -525,7 +597,7 @@ export default function App() {
     }
 
     if (foundCards.length === 0) {
-      setAutoResult(`최대 ${maxTry.toLocaleString()}회까지 실행했지만 조건 카드가 등장하지 않았습니다. 특별 조합 결과입니다.`);
+      setAutoResult(`최대 ${maxTry.toLocaleString()}회까지 실행했지만 조건 카드가 등장하지 않았습니다. 특별 조합은 기록탭에 반영되지 않습니다.`);
       return;
     }
 
@@ -533,7 +605,7 @@ export default function App() {
     setStage('open');
     setPickedCardId(null);
     setMainTab('simulation');
-    setAutoResult(`${tries.toLocaleString()}회 만에 조건 카드가 장판에 등장했습니다. 특별 조합 결과입니다.`);
+    setAutoResult(`${tries.toLocaleString()}회 만에 조건 카드가 장판에 등장했습니다. 특별 조합은 기록탭에 반영되지 않았습니다.`);
     setAutoResultItems(buildResultSummary(foundCards));
   }
 
@@ -615,6 +687,13 @@ export default function App() {
                 <div className="text-xs text-zinc-500">팀 고급 확정권</div>
                 <div className="text-xl font-black text-yellow-300">{stats.advancedTickets}</div>
               </div>
+
+              <button
+                onClick={resetTicketCounts}
+                className="col-span-3 mt-1 rounded-xl bg-zinc-800 px-3 py-2 text-xs font-black text-zinc-300 hover:bg-zinc-700"
+              >
+                확정권 사용 초기화
+              </button>
             </section>
           </div>
 
@@ -622,6 +701,7 @@ export default function App() {
             {[
               ['simulation', '시뮬레이션'],
               ['wish', '위시'],
+              ['history', '기록'],
             ].map(([tab, label]) => (
               <button
                 key={tab}
@@ -794,7 +874,7 @@ export default function App() {
 
                 {autoType === 'special' && (
                   <p className="text-sm text-yellow-300">
-                    특별 조합은 원하는 카드가 장판에 등장할 때까지 빠르게 실행합니다.
+                    특별 조합은 원하는 카드가 장판에 등장할 때까지 빠르게 실행하며, 기록탭에는 반영되지 않습니다.
                   </p>
                 )}
 
@@ -864,23 +944,12 @@ export default function App() {
                     style={{ order: card.orderKey }}
                   >
                     <div
-  className={`relative w-full h-full transition-transform duration-700 
-    [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d]
-    ${
-      isVisible
-        ? '[transform:rotateY(0deg)]'
-        : '[transform:rotateY(180deg)]'
-    }
-  `}
->
-                      
-                  
-                      
+                      className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] ${
+                        isVisible ? '[transform:rotateY(0deg)]' : '[transform:rotateY(180deg)]'
+                      }`}
+                    >
                       <div
-  className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 
-    [backface-visibility:hidden] [-webkit-backface-visibility:hidden]
-    ${!isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-    ${
+                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 [backface-visibility:hidden] ${
                           card.type === 'combo'
                             ? 'border-orange-400 shadow-[0_0_45px_rgba(255,140,0,0.95)]'
                             : isImpact
@@ -937,15 +1006,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div
-  className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 
-    bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 
-    shadow-[0_0_30px_rgba(217,70,239,0.7)] 
-    [backface-visibility:hidden] [-webkit-backface-visibility:hidden] 
-    [transform:rotateY(180deg)] 
-    ${isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-  `}
->
+                      <div className="absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
                         <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
                         <div className="relative z-10 h-full flex items-center justify-center">
@@ -1053,138 +1114,71 @@ export default function App() {
           </section>
         )}
 
-                <section className="w-full max-w-5xl mt-10 rounded-3xl border border-white/10 bg-white/90 text-slate-800 p-6 shadow-xl">
-          <div className="mb-5 flex flex-wrap justify-center gap-4 text-sm font-black text-slate-600">
-            {[
-              ['intro', '소개'],
-              ['guide', '사용 가이드'],
-              ['updates', '업데이트 내역'],
-              ['contact', '문의'],
-            ].map(([tab, label]) => (
-              <button
-                key={tab}
-                onClick={() => setInfoTab(tab as InfoTab)}
-                className={`transition-colors ${
-                  infoTab === tab
-                    ? 'text-pink-600 underline underline-offset-4'
-                    : 'hover:text-slate-950'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {infoTab === 'intro' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">소개</h2>
-                <p className="leading-7 font-semibold">
-                  이 사이트는 컴프야V26 카드 조합 결과를 가볍게 시뮬레이션해볼 수 있는 비공식 팬메이드 도구입니다.
-                  시그니처, 임팩트 조합과 팀 확정권 조건을 바탕으로 조합 결과를 확인할 수 있습니다.
-                </p>
-              </section>
-
-              <hr className="border-slate-300" />
-
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">제공하는 기능</h3>
-                <ul className="list-disc pl-5 space-y-2 font-semibold leading-7">
-                  <li>시그니처 / 임팩트 조합 시뮬레이션</li>
-                  <li>팀 일반 확정권, 팀 고급 확정권 조건 선택</li>
-                  <li>위시 카드 등록 및 별 표시</li>
-                  <li>일반 자동조합 및 특별 조합</li>
-                </ul>
-              </section>
-
-              <hr className="border-slate-300" />
-
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
-                <p className="leading-7 font-semibold">
-                  이 사이트는 게임사와 공식적으로 연계되어 있지 않은 비공식 팬 제작 도구입니다.
-                  표시되는 시뮬레이션 결과는 참고용이며, 실제 게임 데이터나 업데이트에 따라 달라질 수 있습니다.
-                </p>
-              </section>
+        {mainTab === 'history' && (
+          <section className="w-full max-w-6xl rounded-3xl border border-white/10 bg-black/40 p-5 backdrop-blur space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-2xl font-black text-cyan-200">기록</h2>
+              <div className="flex gap-2">
+                <button onClick={resetStats} className="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm font-bold">
+                  카운터 초기화
+                </button>
+                <button onClick={resetHistory} className="px-4 py-2 rounded-xl bg-red-500/80 text-white text-sm font-bold">
+                  기록 초기화
+                </button>
+              </div>
             </div>
-          )}
 
-          {infoTab === 'guide' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">사용 가이드</h2>
-                <ol className="list-decimal pl-5 space-y-2 font-semibold leading-7">
-                  <li>상단에서 시그니처 또는 임팩트 조합을 선택합니다.</li>
-                  <li>팀 일반 확정권 또는 팀 고급 확정권 조건을 선택합니다.</li>
-                  <li>조합 실행 버튼을 눌러 카드 5장을 확인합니다.</li>
-                  <li>셔플 시작 후 뒷면 카드 1장을 선택해 최종 결과를 확인합니다.</li>
-                  <li>위시 탭에서 원하는 카드를 등록하면 조합 결과에 별 표시가 나타납니다.</li>
-                </ol>
-              </section>
-
-              <hr className="border-slate-300" />
-
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">자동조합 안내</h3>
-                <p className="leading-7 font-semibold">
-                  일반 자동조합은 설정한 횟수만큼 빠르게 조합을 실행하고, 1회당 카드 1장을 획득한 것으로 결과를 표시합니다.
-                  특별 조합은 특정 카드, 위시 카드, 조합 전용카드가 장판에 등장할 때까지 빠르게 시뮬레이션합니다.
-                </p>
-              </section>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
+                <div className="text-sm text-zinc-500">총 획득 카드</div>
+                <div className="text-3xl font-black">{Object.values(history.cardCounts).reduce((a, b) => a + b, 0)}</div>
+              </div>
+              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
+                <div className="text-sm text-zinc-500">조합 전용카드 획득</div>
+                <div className="text-3xl font-black text-orange-300">{history.comboOnlyCount}</div>
+              </div>
+              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
+                <div className="text-sm text-zinc-500">위시카드 획득</div>
+                <div className="text-3xl font-black text-yellow-300">{history.wishHitCount}</div>
+              </div>
+              <div className="rounded-2xl bg-zinc-900 border border-zinc-700 p-4">
+                <div className="text-sm text-zinc-500">기록된 카드 종류</div>
+                <div className="text-3xl font-black text-cyan-200">{historyCards.length}</div>
+              </div>
             </div>
-          )}
 
-          {infoTab === 'updates' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">업데이트 내역</h2>
-                <ul className="space-y-3 font-semibold leading-7">
-                  <li>
-                    <span className="font-black text-pink-600">v0.3</span> - 위시 등록/관리 기능 추가, 자동조합 기능 정리
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.2</span> - 임팩트 조합 탭 추가, 팀 로고 및 모바일 대응
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.1</span> - 시그니처 조합 시뮬레이션 기본 기능 구현
-                  </li>
-                </ul>
-              </section>
+            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
+              <h3 className="font-black mb-3 text-pink-300">일반 확정권 사용 시 팀별 획득</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {allTeams.map((team) => (
+                  <div key={team} className="rounded-xl bg-zinc-900 px-3 py-2 text-sm flex justify-between">
+                    <span>{team}</span>
+                    <b>{history.normalTeamCounts[team] || 0}</b>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
 
-          {infoTab === 'contact' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">문의</h2>
-                <p className="leading-7 font-semibold">
-                  오류 제보, 카드 DB 수정 요청, 기능 건의는 아래 이메일로 보내주세요.
-                </p>
-
-                <a
-                  href="mailto:zappa961213@gmail.com"
-                  className="mt-4 inline-flex rounded-2xl bg-slate-900 px-5 py-3 font-black text-white hover:bg-pink-600 transition-colors"
-                >
-                  zappa961213@gmail.com
-                </a>
-              </section>
-
-              <hr className="border-slate-300" />
-
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
-                <p className="leading-7 font-semibold">
-                  본 사이트는 비공식 팬메이드 시뮬레이터이며, 공식 게임사 또는 구단과 직접적인 관련이 없습니다.
-                </p>
-              </section>
+            <div className="rounded-2xl bg-zinc-950 border border-zinc-800 p-4">
+              <h3 className="font-black mb-3 text-cyan-200">카드별 획득 횟수</h3>
+              {historyCards.length === 0 ? (
+                <p className="text-zinc-500">아직 획득 기록이 없습니다.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
+                  {historyCards.map(({ card, count }) =>
+                    renderCardMini(
+                      card,
+                      <div className="shrink-0 rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-black">
+                        × {count}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
             </div>
-          )}
-
-          <div className="mt-8 text-center text-sm font-bold text-slate-500">
-            개발자 주댕
-          </div>
-        </section>
-              </main>
+          </section>
+        )}
+      </main>
     </div>
   );
 }
