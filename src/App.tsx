@@ -387,19 +387,42 @@ export default function App() {
   function drawFive(mode: ComboMode, filter: string) {
     const normalPool = mode === 'signature' ? signatureNormalPool : impactNormalPool;
     const comboPool = mode === 'signature' ? signatureComboPool : impactComboPool;
-    const rate = mode === 'signature' ? 0.09 : 0.15;
 
     const filteredNormal = normalPool.filter((card) => matchesFilter(card, filter));
     const filteredCombo = comboPool.filter((card) => matchesFilter(card, filter));
 
-    if (filteredNormal.length === 0) return [];
+    const filteredSignatureNormal = signatureNormalPool.filter((card) => matchesFilter(card, filter));
+    const filteredSignatureCombo = signatureComboPool.filter((card) => matchesFilter(card, filter));
+
+    if (filteredNormal.length === 0 && filteredCombo.length === 0) return [];
 
     const generated: CardData[] = [];
     const usedIds = new Set<string>();
 
     for (let i = 0; i < 5; i++) {
-      const useCombo = Math.random() < rate;
-      const pool = useCombo && filteredCombo.length > 0 ? filteredCombo : filteredNormal;
+      let pool: CardData[] = filteredNormal;
+
+      if (mode === 'impact') {
+        const useSignatureBoardCard =
+          Math.random() < 0.015 && (filteredSignatureNormal.length > 0 || filteredSignatureCombo.length > 0);
+
+        if (useSignatureBoardCard) {
+          const useSignatureCombo = Math.random() < 0.09;
+          pool =
+            useSignatureCombo && filteredSignatureCombo.length > 0
+              ? filteredSignatureCombo
+              : filteredSignatureNormal.length > 0
+                ? filteredSignatureNormal
+                : filteredSignatureCombo;
+        } else {
+          const useImpactCombo = Math.random() < 0.15;
+          pool = useImpactCombo && filteredCombo.length > 0 ? filteredCombo : filteredNormal;
+        }
+      } else {
+        const useSignatureCombo = Math.random() < 0.09;
+        pool = useSignatureCombo && filteredCombo.length > 0 ? filteredCombo : filteredNormal;
+      }
+
       const picked = getRandomCard(pool, usedIds);
 
       if (picked) {
