@@ -1136,8 +1136,10 @@ export default function App() {
               {stage === 'picked' && '선택 결과 공개'}
             </p>
 
-            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-5 lg:gap-6 max-w-7xl min-h-96">
-              {cards.map((card) => {
+            <section className="grid grid-cols-6 gap-3 sm:gap-5 lg:gap-6 max-w-5xl min-h-96 justify-items-center">
+              {[...cards]
+                .sort((a, b) => a.orderKey - b.orderKey)
+                .map((card, displayIndex) => {
                 const isVisible = cardFaceVisible(card.id);
                 const isPicked = pickedCardId === card.id;
                 const isImpact = card.mode === 'impact';
@@ -1148,7 +1150,8 @@ export default function App() {
                     key={card.id}
                     onClick={() => pickCard(card.id)}
                     disabled={stage !== 'shuffled'}
-                    className={`relative w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 lg:w-52 lg:h-80
+                    className={`relative col-span-2 ${displayIndex === 3 ? 'col-start-2' : displayIndex === 4 ? 'col-start-4' : ''}
+                      w-24 h-36 sm:w-32 sm:h-48 md:w-40 md:h-60 lg:w-52 lg:h-80
                       rounded-2xl sm:rounded-3xl transition-all duration-500 [perspective:1000px]
                       ${stage === 'shuffled' ? 'hover:scale-105 cursor-pointer' : 'cursor-default'}
                       ${
@@ -1160,7 +1163,6 @@ export default function App() {
                       }
                       ${stage === 'shuffling' ? 'shuffle-card' : ''}
                     `}
-                    style={{ order: card.orderKey }}
                   >
                     <div
                       className={`relative w-full h-full transition-transform duration-700 [transform-style:preserve-3d] [-webkit-transform-style:preserve-3d] [will-change:transform] ${
