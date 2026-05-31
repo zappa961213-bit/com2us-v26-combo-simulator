@@ -214,6 +214,7 @@ export default function App() {
 
   const [mainTab, setMainTab] = useState<MainTab>('simulation');
   const [infoTab, setInfoTab] = useState<InfoTab>('intro');
+  const [infoOpen, setInfoOpen] = useState(false);
   const [wishSubTab, setWishSubTab] = useState<WishSubTab>('manage');
 
   const [comboMode, setComboMode] = useState<ComboMode>('signature');
@@ -1335,136 +1336,180 @@ export default function App() {
 
 
         <section className="w-full max-w-5xl mt-8 rounded-3xl border border-white/10 bg-white/90 text-slate-800 p-5 sm:p-6 shadow-xl">
-          <div className="mb-5 flex flex-wrap justify-center gap-4 text-sm font-black text-slate-600">
-            {[
-              ['intro', '소개'],
-              ['guide', '사용 가이드'],
-              ['updates', '업데이트 내역'],
-              ['contact', '문의'],
-            ].map(([tab, label]) => (
-              <button
-                key={tab}
-                onClick={() => setInfoTab(tab as InfoTab)}
-                className={`transition-colors ${
-                  infoTab === tab
-                    ? 'text-pink-600 underline underline-offset-4'
-                    : 'hover:text-slate-950'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => setInfoOpen((prev) => !prev)}
+            className="w-full rounded-2xl bg-slate-900 px-5 py-3 text-center font-black text-white transition-colors hover:bg-pink-600"
+          >
+            {infoOpen ? '사이트 안내 닫기' : '사이트 안내 열기'}
+          </button>
 
-          {infoTab === 'intro' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">소개</h2>
-                <p className="leading-7 font-semibold">
-                  이 사이트는 컴프야V26 카드 조합 결과를 가볍게 시뮬레이션해볼 수 있는 비공식 팬메이드 도구입니다.
-                  시그니처, 임팩트 조합과 팀 확정권 조건을 바탕으로 조합 결과를 확인할 수 있습니다.
-                </p>
-              </section>
+          {infoOpen && (
+            <>
+              <div className="mt-5 mb-5 flex flex-wrap justify-center gap-4 text-sm font-black text-slate-600">
+                {[
+                  ['intro', '소개'],
+                  ['guide', '사용 가이드'],
+                  ['updates', '업데이트 내역'],
+                  ['contact', '문의'],
+                ].map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    onClick={() => setInfoTab(tab as InfoTab)}
+                    className={`transition-colors ${
+                      infoTab === tab
+                        ? 'text-pink-600 underline underline-offset-4'
+                        : 'hover:text-slate-950'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-              <hr className="border-slate-300" />
+              {infoTab === 'intro' && (
+                <div className="space-y-5">
+                  <section>
+                    <h2 className="text-xl font-black text-slate-900 mb-3">소개</h2>
+                    <p className="leading-7 font-semibold">
+                      이 사이트는 컴프야V26 카드 조합 결과를 가볍게 시뮬레이션해볼 수 있는 비공식 팬메이드 도구입니다.
+                      시그니처, 임팩트 조합과 팀 확정권 조건을 바탕으로 조합 결과를 확인할 수 있습니다.
+                    </p>
+                  </section>
 
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">제공하는 기능</h3>
-                <ul className="list-disc pl-5 space-y-2 font-semibold leading-7">
-                  <li>시그니처 / 임팩트 조합 시뮬레이션</li>
-                  <li>팀 일반 확정권, 팀 고급 확정권 조건 선택</li>
-                  <li>위시 카드 등록 및 별 표시</li>
-                  <li>일반 자동조합 및 특별 조합</li>
-                </ul>
-              </section>
+                  <hr className="border-slate-300" />
 
-              <hr className="border-slate-300" />
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 mb-3">제공하는 기능</h3>
+                    <ul className="list-disc pl-5 space-y-2 font-semibold leading-7">
+                      <li>시그니처 / 임팩트 조합 시뮬레이션</li>
+                      <li>팀 일반 확정권, 팀 고급 확정권 조건 선택</li>
+                      <li>위시 카드 등록 및 별 표시</li>
+                      <li>일반 자동조합 및 특별 조합</li>
+                      <li>커스텀 조합</li>
+                    </ul>
+                  </section>
 
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
-                <p className="leading-7 font-semibold">
-                  이 사이트는 게임사와 공식적으로 연계되어 있지 않은 비공식 팬 제작 도구입니다.
-                  표시되는 시뮬레이션 결과는 참고용이며, 실제 게임 데이터나 업데이트에 따라 달라질 수 있습니다.
-                </p>
-              </section>
-            </div>
-          )}
+                  <hr className="border-slate-300" />
 
-          {infoTab === 'guide' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">사용 가이드</h2>
-                <ol className="list-decimal pl-5 space-y-2 font-semibold leading-7">
-                  <li>상단에서 시그니처 또는 임팩트 조합을 선택합니다.</li>
-                  <li>팀 일반 확정권 또는 팀 고급 확정권 조건을 선택합니다.</li>
-                  <li>조합 실행 버튼을 눌러 카드 5장을 확인합니다.</li>
-                  <li>셔플 시작 후 뒷면 카드 1장을 선택해 최종 결과를 확인합니다.</li>
-                  <li>위시 탭에서 원하는 카드를 등록하면 조합 결과에 별 표시가 나타납니다.</li>
-                </ol>
-              </section>
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
+                    <p className="leading-7 font-semibold">
+                      이 사이트는 게임사와 공식적으로 연계되어 있지 않은 비공식 팬 제작 도구입니다.
+                      표시되는 시뮬레이션 결과는 참고용이며, 실제 게임 데이터나 업데이트에 따라 달라질 수 있습니다.
+                    </p>
+                  </section>
+                </div>
+              )}
 
-              <hr className="border-slate-300" />
+              {infoTab === 'guide' && (
+                <div className="space-y-5">
+                  <section>
+                    <h2 className="text-xl font-black text-slate-900 mb-3">사용 가이드</h2>
+                    <ol className="list-decimal pl-5 space-y-2 font-semibold leading-7">
+                      <li>상단에서 시그니처, 임팩트, 커스텀 조합을 선택합니다.</li>
+                      <li>팀 일반 확정권 또는 팀 고급 확정권 조건을 선택합니다.</li>
+                      <li>조합 실행 버튼을 눌러 카드 5장을 확인합니다.</li>
+                      <li>셔플 시작 후 뒷면 카드 1장을 선택해 최종 결과를 확인합니다.</li>
+                      <li>위시 탭에서 원하는 카드를 등록하면 조합 결과에 별 표시가 나타납니다.</li>
+                    </ol>
+                  </section>
 
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">자동조합 안내</h3>
-                <p className="leading-7 font-semibold">
-                  일반 자동조합은 설정한 횟수만큼 빠르게 조합을 실행하고, 1회당 카드 1장을 획득한 것으로 결과를 표시합니다.
-                  특별 조합은 특정 카드, 위시 카드, 조합 전용카드가 장판에 등장할 때까지 빠르게 시뮬레이션합니다.
-                </p>
-              </section>
-            </div>
-          )}
+                  <hr className="border-slate-300" />
 
-          {infoTab === 'updates' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">업데이트 내역</h2>
-                <ul className="space-y-3 font-semibold leading-7">
-                  <li>
-                    <span className="font-black text-pink-600">v0.5</span> - 커스텀 조합 기능 추가
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.4</span> - 모바일 버튼 배치 개선, 확정권 사용 초기화 추가
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.3</span> - 위시 등록/관리 기능 추가, 자동조합 기능 정리
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.2</span> - 임팩트 조합 탭 추가, 팀 로고 및 모바일 대응
-                  </li>
-                  <li>
-                    <span className="font-black text-pink-600">v0.1</span> - 시그니처 조합 시뮬레이션 기본 기능 구현
-                  </li>
-                </ul>
-              </section>
-            </div>
-          )}
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 mb-3">자동조합 안내</h3>
+                    <p className="leading-7 font-semibold">
+                      일반 자동조합은 설정한 횟수만큼 빠르게 조합을 실행하고, 1회당 카드 1장을 획득한 것으로 결과를 표시합니다.
+                      특별 조합은 특정 카드, 위시 카드, 조합 전용카드가 장판에 등장할 때까지 빠르게 시뮬레이션합니다.
+                    </p>
+                  </section>
 
-          {infoTab === 'contact' && (
-            <div className="space-y-5">
-              <section>
-                <h2 className="text-xl font-black text-slate-900 mb-3">문의</h2>
-                <p className="leading-7 font-semibold">
-                  오류 제보, 카드 DB 수정 요청, 기능 건의는 아래 이메일로 보내주세요.
-                </p>
+                  <hr className="border-slate-300" />
 
-                <a
-                  href="mailto:zappa961213@gmail.com"
-                  className="mt-4 inline-flex rounded-2xl bg-slate-900 px-5 py-3 font-black text-white hover:bg-pink-600 transition-colors"
-                >
-                  zappa961213@gmail.com
-                </a>
-              </section>
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 mb-3">현재 적용 확률</h3>
 
-              <hr className="border-slate-300" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-semibold">
+                      <div className="rounded-2xl border border-slate-300 bg-white/70 p-4">
+                        <h4 className="font-black text-pink-600 mb-2">시그니처 조합</h4>
+                        <p>일반 시그니처: <span className="font-black">91%</span></p>
+                        <p>조합전용 시그니처: <span className="font-black">9%</span></p>
+                        <p className="mt-2 text-sm text-slate-500">장판 5칸 중 조합전용 시그니처가 1장 이상 등장할 확률: 약 37.6%</p>
+                      </div>
 
-              <section>
-                <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
-                <p className="leading-7 font-semibold">
-                  본 사이트는 비공식 팬메이드 시뮬레이터이며, 공식 게임사 또는 구단과 직접적인 관련이 없습니다.
-                </p>
-              </section>
-            </div>
+                      <div className="rounded-2xl border border-slate-300 bg-white/70 p-4">
+                        <h4 className="font-black text-lime-600 mb-2">임팩트 조합</h4>
+                        <p>일반 임팩트: <span className="font-black">83.725%</span></p>
+                        <p>조합전용 임팩트: <span className="font-black">14.775%</span></p>
+                        <p>시그니처 등장: <span className="font-black">1.5%</span></p>
+                        <p className="mt-2 text-sm text-slate-500">
+                          임팩트 조합에서 시그니처가 등장하면, 그 안에서 다시 일반 시그 91% / 조합전용 시그 9% 판정을 적용합니다.
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-sm font-semibold text-slate-500">
+                      위 확률은 카드 1칸 기준입니다. 전체/드림/나눔/개별 팀 확정권 조건은 각 카드 풀에 그대로 적용됩니다.
+                    </p>
+                  </section>
+                </div>
+              )}
+
+              {infoTab === 'updates' && (
+                <div className="space-y-5">
+                  <section>
+                    <h2 className="text-xl font-black text-slate-900 mb-3">업데이트 내역</h2>
+                    <ul className="space-y-3 font-semibold leading-7">
+                      <li>
+                        <span className="font-black text-pink-600">v0.6</span> - 안내 탭 접기/펼치기 및 확률 안내 추가
+                      </li>
+                      <li>
+                        <span className="font-black text-pink-600">v0.5</span> - 커스텀 조합 기능 추가
+                      </li>
+                      <li>
+                        <span className="font-black text-pink-600">v0.4</span> - 모바일 버튼 배치 개선, 확정권 사용 초기화 추가
+                      </li>
+                      <li>
+                        <span className="font-black text-pink-600">v0.3</span> - 위시 등록/관리 기능 추가, 자동조합 기능 정리
+                      </li>
+                      <li>
+                        <span className="font-black text-pink-600">v0.2</span> - 임팩트 조합 탭 추가, 팀 로고 및 모바일 대응
+                      </li>
+                      <li>
+                        <span className="font-black text-pink-600">v0.1</span> - 시그니처 조합 시뮬레이션 기본 기능 구현
+                      </li>
+                    </ul>
+                  </section>
+                </div>
+              )}
+
+              {infoTab === 'contact' && (
+                <div className="space-y-5">
+                  <section>
+                    <h2 className="text-xl font-black text-slate-900 mb-3">문의</h2>
+                    <p className="leading-7 font-semibold">
+                      오류 제보, 카드 DB 수정 요청, 기능 건의는 아래 이메일로 보내주세요.
+                    </p>
+
+                    <a
+                      href="mailto:zappa961213@gmail.com"
+                      className="mt-4 inline-flex rounded-2xl bg-slate-900 px-5 py-3 font-black text-white hover:bg-pink-600 transition-colors"
+                    >
+                      zappa961213@gmail.com
+                    </a>
+                  </section>
+
+                  <hr className="border-slate-300" />
+
+                  <section>
+                    <h3 className="text-lg font-black text-slate-900 mb-3">비공식 안내</h3>
+                    <p className="leading-7 font-semibold">
+                      본 사이트는 비공식 팬메이드 시뮬레이터이며, 공식 게임사 또는 구단과 직접적인 관련이 없습니다.
+                    </p>
+                  </section>
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-8 text-center text-sm font-bold text-slate-500">
