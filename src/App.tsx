@@ -123,6 +123,20 @@ function shuffleArray<T>(array: T[]) {
   return copied;
 }
 
+function getPlayerNameTextSize(player: string) {
+  const koreanLength = Array.from(player).filter((char) => /[가-힣]/.test(char)).length;
+
+  if (koreanLength >= 6) {
+    return 'text-base sm:text-xl lg:text-2xl';
+  }
+
+  if (koreanLength >= 5) {
+    return 'text-[17px] sm:text-xl lg:text-2xl';
+  }
+
+  return 'text-lg sm:text-2xl lg:text-3xl';
+}
+
 function getCardLabel(card: CardData) {
   const title = card.mode === 'impact' ? card.concept || '' : card.year ? `'${card.year}` : '';
   return `${card.team} ${card.player} ${title} ${card.position}`.replace(/\s+/g, ' ').trim();
@@ -1009,7 +1023,7 @@ export default function App() {
                               </div>
                             )}
 
-                            <div className="text-lg sm:text-2xl lg:text-3xl font-black text-zinc-950 tracking-tight">
+                            <div className={`${getPlayerNameTextSize(card.player)} font-black text-zinc-950 tracking-tight leading-tight`}>
                               {card.player}
                             </div>
 
