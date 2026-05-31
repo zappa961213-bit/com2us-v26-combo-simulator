@@ -21,7 +21,7 @@ const allTeams = ['두산', '삼성', '한화', '롯데', 'KIA', '키움', 'SSG'
 const autoCounts = [5, 10, 30, 50, 100];
 
 type GameStage = 'ready' | 'open' | 'back' | 'shuffling' | 'shuffled' | 'picked';
-type ComboMode = 'signature' | 'impact';
+type ComboMode = 'signature' | 'impact' | 'custom';
 type MainTab = 'simulation' | 'wish';
 type InfoTab = 'intro' | 'guide' | 'updates' | 'contact';
 type WishSubTab = 'manage' | 'register';
@@ -127,11 +127,11 @@ function getPlayerNameTextSize(player: string) {
   const koreanLength = Array.from(player).filter((char) => /[가-힣]/.test(char)).length;
 
   if (koreanLength >= 6) {
-    return 'text-base sm:text-xl lg:text-2xl';
+    return 'text-sm sm:text-xl lg:text-2xl';
   }
 
   if (koreanLength >= 5) {
-    return 'text-[17px] sm:text-xl lg:text-2xl';
+    return 'text-[15px] sm:text-xl lg:text-2xl';
   }
 
   return 'text-lg sm:text-2xl lg:text-3xl';
@@ -217,6 +217,12 @@ export default function App() {
   const [wishSubTab, setWishSubTab] = useState<WishSubTab>('manage');
 
   const [comboMode, setComboMode] = useState<ComboMode>('signature');
+  const [customSlots, setCustomSlots] = useState<(CardData | null)[]>([null, null, null, null, null]);
+  const [customPickerIndex, setCustomPickerIndex] = useState<number | null>(null);
+  const [customSearch, setCustomSearch] = useState('');
+  const [customModeFilter, setCustomModeFilter] = useState<'all' | 'signature' | 'impact'>('all');
+  const [customTypeFilter, setCustomTypeFilter] = useState<'all' | 'combo' | 'normal'>('all');
+  const [customTeamFilter, setCustomTeamFilter] = useState('전체');
   const [selectedFilter, setSelectedFilter] = useState('전체');
   const [isRolling, setIsRolling] = useState(false);
   const [dbLoaded, setDbLoaded] = useState(false);
@@ -363,6 +369,35 @@ export default function App() {
       .filter((card): card is CardData => Boolean(card));
   }, [wishIds, allPool]);
 
+  const customSearchResults = useMemo(() => {
+    const keyword = customSearch.trim().toLowerCase();
+
+    return allPool
+      .filter((card) => {
+        if (customModeFilter !== 'all' && card.mode !== customModeFilter) return false;
+        if (customTypeFilter !== 'all' && card.type !== customTypeFilter) return false;
+        if (customTeamFilter !== '전체' && normalizeTeam(card.team) !== customTeamFilter) return false;
+
+        if (!keyword) return true;
+
+        const target = [
+          card.team,
+          normalizeTeam(card.team),
+          card.player,
+          card.year,
+          card.concept,
+          card.position,
+          card.mode === 'signature' ? '시그니처 시그' : '임팩트 임팩',
+          card.type === 'combo' ? '조합전용 조합 전용' : '일반',
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        return target.includes(keyword);
+      })
+      .slice(0, 120);
+  }, [allPool, customSearch, customModeFilter, customTypeFilter, customTeamFilter]);
+
   const currentNormalPool = comboMode === 'signature' ? signatureNormalPool : impactNormalPool;
 
   const filteredNormalPool = useMemo(() => {
@@ -458,6 +493,40 @@ export default function App() {
     }));
   }
 
+  function pickCustomCard(card: CardData) {
+    if (customPickerIndex === null) return;
+
+    setCustomSlots((prev) => {
+      const next = [...prev];
+      next[customPickerIndex] = { ...card, orderKey: customPickerIndex };
+      return next;
+    });
+    setCustomPickerIndex(null);
+    setCustomSearch('');
+  }
+
+  function clearCustomSlot(index: number) {
+    setCustomSlots((prev) => {
+      const next = [...prev];
+      next[index] = null;
+      return next;
+    });
+  }
+
+  function applyCustomBoard() {
+    const filledCards = customSlots.filter((card): card is CardData => Boolean(card));
+
+    if (filledCards.length !== 5) {
+      window.alert('커스텀 장판 5칸을 모두 설정해주세요.');
+      return;
+    }
+
+    setPickedCardId(null);
+    setCards(filledCards.map((card, index) => ({ ...card, orderKey: index })));
+    setStage('open');
+    setMainTab('simulation');
+  }
+
   function toggleWish(cardId: string) {
     setWishIds((prev) =>
       prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
@@ -481,6 +550,11 @@ export default function App() {
   }
 
   async function simulateCombo() {
+    if (comboMode === 'custom') {
+      applyCustomBoard();
+      return;
+    }
+
     if (!dbLoaded || filteredNormalPool.length === 0) return;
 
     setIsRolling(true);
@@ -745,77 +819,79 @@ export default function App() {
 
         {mainTab === 'simulation' && (
           <>
-            <section className="flex gap-3">
-              <button
-                onClick={() => {
-                  setComboMode('signature');
-                  setCards([]);
-                  setStage('ready');
-                }}
-                className={`px-6 py-3 rounded-xl font-black transition-all ${
-                  comboMode === 'signature'
-                    ? 'bg-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.7)]'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                }`}
-              >
-                시그니처
-              </button>
-
-              <button
-                onClick={() => {
-                  setComboMode('impact');
-                  setCards([]);
-                  setStage('ready');
-                }}
-                className={`px-6 py-3 rounded-xl font-black transition-all ${
-                  comboMode === 'impact'
-                    ? 'bg-lime-500 text-black shadow-[0_0_18px_rgba(132,204,22,0.7)]'
-                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                }`}
-              >
-                임팩트
-              </button>
+            <section className="flex gap-2 sm:gap-3">
+              {[
+                ['signature', '시그니처'],
+                ['impact', '임팩트'],
+                ['custom', '커스텀'],
+              ].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setComboMode(mode as ComboMode);
+                    setCards([]);
+                    setStage('ready');
+                    setPickedCardId(null);
+                  }}
+                  className={`px-5 sm:px-6 py-3 rounded-xl font-black transition-all ${
+                    comboMode === mode
+                      ? mode === 'impact'
+                        ? 'bg-lime-500 text-black shadow-[0_0_18px_rgba(132,204,22,0.7)]'
+                        : mode === 'custom'
+                          ? 'bg-cyan-300 text-black shadow-[0_0_18px_rgba(103,232,249,0.7)]'
+                          : 'bg-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.7)]'
+                      : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </section>
 
-            <section className="flex flex-col items-center gap-3">
-              <div className="text-sm font-bold text-zinc-400">팀 일반 확정권</div>
-              <div className="flex gap-3 flex-wrap justify-center">
-                {['전체', '드림', '나눔'].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setSelectedFilter(filter)}
-                    disabled={isRolling}
-                    className={`px-6 py-3 rounded-xl font-black transition-all ${
-                      selectedFilter === filter
-                        ? 'bg-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.7)]'
-                        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-                    }`}
-                  >
-                    {filter}
-                  </button>
-                ))}
-              </div>
-            </section>
+            {comboMode !== 'custom' && (
+              <>
+                <section className="flex flex-col items-center gap-3">
+                  <div className="text-sm font-bold text-zinc-400">팀 일반 확정권</div>
+                  <div className="flex gap-3 flex-wrap justify-center">
+                    {['전체', '드림', '나눔'].map((filter) => (
+                      <button
+                        key={filter}
+                        onClick={() => setSelectedFilter(filter)}
+                        disabled={isRolling}
+                        className={`px-6 py-3 rounded-xl font-black transition-all ${
+                          selectedFilter === filter
+                                ? 'bg-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.7)]'
+                                : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                        }`}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
+                </section>
 
-            <section className="flex flex-col items-center gap-3 max-w-4xl">
-              <div className="text-sm font-bold text-zinc-400">팀 고급 확정권</div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                {allTeams.map((team) => (
-                  <button
-                    key={team}
-                    onClick={() => setSelectedFilter(team)}
-                    disabled={isRolling}
-                    className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${
-                      selectedFilter === team
-                        ? 'bg-orange-400 text-black shadow-[0_0_18px_rgba(251,146,60,0.75)]'
-                        : 'bg-zinc-900 text-zinc-300 border border-zinc-700 hover:bg-zinc-800'
-                    }`}
-                  >
-                    {team}
-                  </button>
-                ))}
-              </div>
-            </section>
+                <section className="flex flex-col items-center gap-3 max-w-4xl">
+                  <div className="text-sm font-bold text-zinc-400">팀 고급 확정권</div>
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {allTeams.map((team) => (
+                      <button
+                        key={team}
+                        onClick={() => setSelectedFilter(team)}
+                        disabled={isRolling}
+                        className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${
+                          selectedFilter === team
+                                ? 'bg-orange-400 text-black shadow-[0_0_18px_rgba(251,146,60,0.75)]'
+                                : 'bg-zinc-900 text-zinc-300 border border-zinc-700 hover:bg-zinc-800'
+                        }`}
+                      >
+                        {team}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+              </>
+            )}
 
             <section className="flex flex-col items-center gap-2 w-full max-w-[320px] sm:max-w-md">
               <button
@@ -827,13 +903,14 @@ export default function App() {
                     : 'bg-gradient-to-r from-lime-400 to-green-600 text-black'
                 }`}
               >
-                {isRolling ? '진행 중...' : comboMode === 'signature' ? '시그 조합 실행' : '임팩트 조합 실행'}
+                {isRolling ? '진행 중...' : comboMode === 'custom' ? '커스텀 장판 적용' : comboMode === 'signature' ? '시그 조합 실행' : '임팩트 조합 실행'}
               </button>
 
               <div className="grid grid-cols-2 gap-2 w-full">
                 <button
                   onClick={() => setAutoOpen((prev) => !prev)}
-                  className="px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-zinc-900 border border-cyan-400/60 text-cyan-200 text-sm sm:text-base font-black shadow-[0_0_18px_rgba(34,211,238,0.25)] hover:bg-zinc-800"
+                  disabled={comboMode === 'custom'}
+                  className="px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl bg-zinc-900 border border-cyan-400/60 text-cyan-200 text-sm sm:text-base font-black shadow-[0_0_18px_rgba(34,211,238,0.25)] hover:bg-zinc-800 disabled:opacity-30 disabled:grayscale"
                 >
                   자동 조합
                 </button>
@@ -847,6 +924,120 @@ export default function App() {
                 </button>
               </div>
             </section>
+
+            {comboMode === 'custom' && (
+              <section className="w-full max-w-5xl rounded-3xl border border-cyan-400/25 bg-black/45 p-5 backdrop-blur space-y-5">
+                <div>
+                  <h2 className="text-xl font-black text-cyan-200">커스텀 조합</h2>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    장판 5칸을 직접 설정한 뒤 커스텀 장판 적용을 누르면 기존 셔플 방식으로 1장을 획득할 수 있습니다.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {customSlots.map((slot, index) => (
+                    <div key={index} className="rounded-2xl border border-zinc-700 bg-zinc-950/80 p-3 text-center space-y-3">
+                      <div className="text-xs font-black text-zinc-500">{index + 1}번 장판</div>
+
+                      {slot ? (
+                        <div className="space-y-2">
+                          <div className="font-black text-white leading-tight">
+                            {slot.type === 'combo' ? '[조합전용] ' : ''}
+                            {getCardLabel(slot)}
+                          </div>
+                          <div className="text-xs text-zinc-500">
+                            {slot.mode === 'signature' ? '시그니처' : '임팩트'} · {slot.type === 'combo' ? '조합전용' : '일반'}
+                          </div>
+                          <button
+                            onClick={() => clearCustomSlot(index)}
+                            className="w-full rounded-xl bg-red-500/80 px-3 py-2 text-xs font-black text-white hover:bg-red-500"
+                          >
+                            비우기
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-zinc-500">선수 미설정</div>
+                      )}
+
+                      <button
+                        onClick={() => setCustomPickerIndex(index)}
+                        className="w-full rounded-xl bg-cyan-300 px-3 py-2 text-sm font-black text-black hover:bg-cyan-200"
+                      >
+                        선수 설정
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {customPickerIndex !== null && (
+                  <div className="rounded-3xl border border-white/10 bg-zinc-950 p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-black text-cyan-200">{customPickerIndex + 1}번 장판 선수 설정</h3>
+                      <button
+                        onClick={() => setCustomPickerIndex(null)}
+                        className="rounded-xl bg-zinc-800 px-3 py-2 text-xs font-black text-zinc-300 hover:bg-zinc-700"
+                      >
+                        닫기
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <input
+                        value={customSearch}
+                        onChange={(e) => setCustomSearch(e.target.value)}
+                        placeholder="선수명, 컨셉, 팀, 시즌 검색"
+                        className="md:col-span-4 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700 outline-none focus:border-cyan-300"
+                      />
+                      <select value={customModeFilter} onChange={(e) => setCustomModeFilter(e.target.value as 'all' | 'signature' | 'impact')} className="px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700">
+                        <option value="all">전체 타입</option>
+                        <option value="signature">시그니처</option>
+                        <option value="impact">임팩트</option>
+                      </select>
+                      <select value={customTypeFilter} onChange={(e) => setCustomTypeFilter(e.target.value as 'all' | 'combo' | 'normal')} className="px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700">
+                        <option value="all">전체 카드</option>
+                        <option value="combo">조합전용카드만</option>
+                        <option value="normal">일반카드만</option>
+                      </select>
+                      <select value={customTeamFilter} onChange={(e) => setCustomTeamFilter(e.target.value)} className="px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-700">
+                        {['전체', ...allTeams].map((team) => (
+                          <option key={team} value={team}>
+                            {team}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="px-4 py-3 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400">
+                        검색 {customSearchResults.length}개
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1">
+                      {customSearchResults.map((card) => {
+                        const isWish = wishIds.includes(card.id);
+
+                        return (
+                          <button
+                            key={card.id}
+                            onClick={() => pickCustomCard(card)}
+                            className="text-left rounded-2xl bg-zinc-900/80 border border-zinc-700 px-4 py-3 hover:border-cyan-300"
+                          >
+                            <div className="flex items-center gap-2">
+                              {isWish && <span className="text-yellow-300">★</span>}
+                              <div className="font-black text-white">
+                                {card.type === 'combo' ? '[조합전용] ' : ''}
+                                {getCardLabel(card)}
+                              </div>
+                            </div>
+                            <div className="text-xs text-zinc-500">
+                              {card.mode === 'signature' ? '시그니처' : '임팩트'} · {card.type === 'combo' ? '조합전용' : '일반'} · {normalizeTeam(card.team)}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {autoOpen && (
               <section className="w-full max-w-5xl rounded-3xl border border-cyan-400/25 bg-black/45 p-5 backdrop-blur space-y-5">
@@ -938,7 +1129,7 @@ export default function App() {
             )}
 
             <p className="min-h-5 text-xs sm:text-sm text-zinc-400 text-center px-2">
-              {stage === 'open' && '카드 5장이 공개되었습니다. 셔플을 시작하세요.'}
+              {stage === 'open' && (comboMode === 'custom' ? '커스텀 장판이 적용되었습니다. 셔플을 시작하세요.' : '카드 5장이 공개되었습니다. 셔플을 시작하세요.')}
               {stage === 'back' && '카드를 뒤집는 중...'}
               {stage === 'shuffling' && '카드를 섞는 중...'}
               {stage === 'shuffled' && '뒷면 카드 1장을 선택하세요'}
@@ -1023,7 +1214,7 @@ export default function App() {
                               </div>
                             )}
 
-                            <div className={`${getPlayerNameTextSize(card.player)} font-black text-zinc-950 tracking-tight leading-tight`}>
+                            <div className={`${getPlayerNameTextSize(card.player)} font-black text-zinc-950 tracking-tight leading-none sm:leading-tight`}>
                               {card.player}
                             </div>
 
@@ -1231,6 +1422,9 @@ export default function App() {
               <section>
                 <h2 className="text-xl font-black text-slate-900 mb-3">업데이트 내역</h2>
                 <ul className="space-y-3 font-semibold leading-7">
+                  <li>
+                    <span className="font-black text-pink-600">v0.5</span> - 커스텀 조합 기능 추가
+                  </li>
                   <li>
                     <span className="font-black text-pink-600">v0.4</span> - 모바일 버튼 배치 개선, 확정권 사용 초기화 추가
                   </li>
