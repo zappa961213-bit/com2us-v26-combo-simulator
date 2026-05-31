@@ -1228,15 +1228,11 @@ export default function App() {
                       </div>
 
                       <div
-                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-fuchsia-300 bg-gradient-to-br from-fuchsia-700 via-pink-500 to-purple-800 shadow-[0_0_30px_rgba(217,70,239,0.7)] transition-opacity duration-100 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] ${isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                        className={`absolute inset-0 rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-zinc-400 bg-gradient-to-br from-zinc-200 via-zinc-500 to-zinc-900 shadow-[0_0_24px_rgba(161,161,170,0.45)] transition-opacity duration-100 [backface-visibility:hidden] [-webkit-backface-visibility:hidden] [transform:rotateY(180deg)] ${isVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                       >
-                        <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/30" />
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
-                        <div className="relative z-10 h-full flex items-center justify-center">
-                          <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/90 italic tracking-wider">
-                            {comboMode === 'impact' ? 'IMPACT' : comboMode === 'custom' ? 'CUSTOM' : 'SIGN'}
-                          </div>
-                        </div>
+                        <div className="absolute inset-2 sm:inset-3 rounded-2xl border border-white/25" />
+                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.28),transparent_35%,rgba(0,0,0,0.22))]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_45%)]" />
                       </div>
                     </div>
                   </button>
