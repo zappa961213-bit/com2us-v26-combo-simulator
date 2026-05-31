@@ -1234,7 +1234,7 @@ export default function App() {
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.25),transparent_55%)]" />
                         <div className="relative z-10 h-full flex items-center justify-center">
                           <div className="text-2xl sm:text-3xl lg:text-4xl font-black text-white/90 italic tracking-wider">
-                            {isImpact ? 'IMPACT' : 'SIGN'}
+                            {comboMode === 'impact' ? 'IMPACT' : comboMode === 'custom' ? 'CUSTOM' : 'SIGN'}
                           </div>
                         </div>
                       </div>
