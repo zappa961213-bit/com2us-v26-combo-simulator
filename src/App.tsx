@@ -454,7 +454,7 @@ export default function App() {
 
       if (mode === 'impact') {
         const useSignatureBoardCard =
-          Math.random() < 0.015 && (filteredSignatureNormal.length > 0 || filteredSignatureCombo.length > 0);
+          Math.random() < 0.005 && (filteredSignatureNormal.length > 0 || filteredSignatureCombo.length > 0);
 
         if (useSignatureBoardCard) {
           const useSignatureCombo = Math.random() < 0.09;
@@ -1439,8 +1439,8 @@ export default function App() {
 
                       <div className="rounded-2xl border border-slate-300 bg-white/70 p-4">
                         <h4 className="font-black text-lime-600 mb-2">임팩트 조합</h4>
-                        <p>일반 임팩트: <span className="font-black">83.725%</span></p>
-                        <p>조합전용 임팩트: <span className="font-black">14.775%</span></p>
+                        <p>일반 임팩트: <span className="font-black">84.575%</span></p>
+                        <p>조합전용 임팩트: <span className="font-black">14.925%</span></p>
                         <p>시그니처 등장: <span className="font-black">0.5%</span></p>
                         <p className="mt-2 text-sm text-slate-500">
                           임팩트 조합에서 시그니처가 등장하면, 그 안에서 다시 일반 시그 91% / 조합전용 시그 9% 판정을 적용합니다.
