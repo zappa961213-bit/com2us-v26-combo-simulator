@@ -1441,7 +1441,7 @@ export default function App() {
                         <h4 className="font-black text-lime-600 mb-2">임팩트 조합</h4>
                         <p>일반 임팩트: <span className="font-black">83.725%</span></p>
                         <p>조합전용 임팩트: <span className="font-black">14.775%</span></p>
-                        <p>시그니처 등장: <span className="font-black">1.5%</span></p>
+                        <p>시그니처 등장: <span className="font-black">0.5%</span></p>
                         <p className="mt-2 text-sm text-slate-500">
                           임팩트 조합에서 시그니처가 등장하면, 그 안에서 다시 일반 시그 91% / 조합전용 시그 9% 판정을 적용합니다.
                         </p>
