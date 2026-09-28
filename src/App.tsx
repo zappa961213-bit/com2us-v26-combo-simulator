@@ -189,6 +189,37 @@ function getRandomCard(pool: CardData[], usedIds: Set<string>) {
   return available[Math.floor(Math.random() * available.length)];
 }
 
+function getWeightedImpactComboCard(
+  pool: CardData[],
+  usedIds: Set<string>,
+  bigGameHunterUp: boolean
+) {
+  const available = pool.filter((card) => !usedIds.has(card.id));
+  if (available.length === 0) return null;
+
+  if (!bigGameHunterUp) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  const weighted = available.map((card) => ({
+    card,
+    weight:
+      String(card.concept || '').replace(/\s+/g, '').toLowerCase() === '빅게임헌터'
+        ? 1.5
+        : 1,
+  }));
+
+  const totalWeight = weighted.reduce((sum, item) => sum + item.weight, 0);
+  let random = Math.random() * totalWeight;
+
+  for (const item of weighted) {
+    random -= item.weight;
+    if (random < 0) return item.card;
+  }
+
+  return weighted[weighted.length - 1].card;
+}
+
 function buildResultSummary(cards: CardData[]) {
   const counts = new Map<string, AutoResultItem>();
 
@@ -218,6 +249,7 @@ export default function App() {
   const [wishSubTab, setWishSubTab] = useState<WishSubTab>('manage');
 
   const [comboMode, setComboMode] = useState<ComboMode>('signature');
+  const [bigGameHunterUp, setBigGameHunterUp] = useState(false);
   const [customSlots, setCustomSlots] = useState<(CardData | null)[]>([null, null, null, null, null]);
   const [customPickerIndex, setCustomPickerIndex] = useState<number | null>(null);
   const [customSearch, setCustomSearch] = useState('');
@@ -434,7 +466,7 @@ export default function App() {
       .slice(0, 120);
   }, [allPool, wishSearch, wishModeFilter, wishTypeFilter, wishTeamFilter]);
 
-  function drawFive(mode: ComboMode, filter: string) {
+  function drawFive(mode: ComboMode, filter: string, bigGameHunterUpOverride = bigGameHunterUp) {
     const normalPool = mode === 'signature' ? signatureNormalPool : impactNormalPool;
     const comboPool = mode === 'signature' ? signatureComboPool : impactComboPool;
 
@@ -454,7 +486,7 @@ export default function App() {
 
       if (mode === 'impact') {
         const useSignatureBoardCard =
-          Math.random() < 0.005 && (filteredSignatureNormal.length > 0 || filteredSignatureCombo.length > 0);
+          Math.random() < 0.015 && (filteredSignatureNormal.length > 0 || filteredSignatureCombo.length > 0);
 
         if (useSignatureBoardCard) {
           const useSignatureCombo = Math.random() < 0.09;
@@ -473,7 +505,10 @@ export default function App() {
         pool = useSignatureCombo && filteredCombo.length > 0 ? filteredCombo : filteredNormal;
       }
 
-      const picked = getRandomCard(pool, usedIds);
+      const picked =
+        mode === 'impact' && pool === filteredCombo
+          ? getWeightedImpactComboCard(pool, usedIds, bigGameHunterUpOverride)
+          : getRandomCard(pool, usedIds);
 
       if (picked) {
         usedIds.add(picked.id);
@@ -848,6 +883,20 @@ export default function App() {
                 </button>
               ))}
             </section>
+
+            {comboMode === 'impact' && (
+              <label className="flex items-center gap-3 rounded-2xl border border-lime-400/50 bg-lime-950/40 px-4 py-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={bigGameHunterUp}
+                  onChange={(e) => setBigGameHunterUp(e.target.checked)}
+                  disabled={isRolling}
+                  className="h-5 w-5 accent-lime-400"
+                />
+                <span className="font-black text-lime-200">빅게임 헌터 확률 UP</span>
+                <span className="text-xs font-bold text-lime-400">(조합전용 임팩트 내 1.5배)</span>
+              </label>
+            )}
 
             {comboMode !== 'custom' && (
               <>
@@ -1439,9 +1488,9 @@ export default function App() {
 
                       <div className="rounded-2xl border border-slate-300 bg-white/70 p-4">
                         <h4 className="font-black text-lime-600 mb-2">임팩트 조합</h4>
-                        <p>일반 임팩트: <span className="font-black">84.575%</span></p>
-                        <p>조합전용 임팩트: <span className="font-black">14.925%</span></p>
-                        <p>시그니처 등장: <span className="font-black">0.5%</span></p>
+                        <p>일반 임팩트: <span className="font-black">83.725%</span></p>
+                        <p>조합전용 임팩트: <span className="font-black">14.775%</span></p>
+                        <p>시그니처 등장: <span className="font-black">1.5%</span></p>
                         <p className="mt-2 text-sm text-slate-500">
                           임팩트 조합에서 시그니처가 등장하면, 그 안에서 다시 일반 시그 91% / 조합전용 시그 9% 판정을 적용합니다.
                         </p>
